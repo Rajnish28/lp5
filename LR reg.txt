@@ -1,0 +1,75 @@
+ #1
+import numpy as np
+import matplotlib.pyplot as plt
+import tensorflow as tf
+from tensorflow import keras
+
+#2
+boston = keras.datasets.boston_housing
+(X_train, y_train), (X_test, y_test) = boston.load_data(test_split=0.2, seed=42)
+mean = X_train.mean(axis=0)
+std = X_train.std(axis=0)
+X_train = (X_train - mean) / std
+X_test = (X_test - mean) / std
+
+#3
+def evaluate_models(train_sizes):
+    mae_scores_dnn = []
+    mse_scores_dnn = []
+    medae_scores_dnn = []
+    mae_scores_lr = []
+    mse_scores_lr = []
+    medae_scores_lr = []
+
+    for size in train_sizes:
+        idx = np.random.choice(X_train.shape[0], int(X_train.shape[0] * size), replace=False)
+        X_train_subset, y_train_subset = X_train[idx], y_train[idx]
+
+       
+        model = keras.Sequential([
+            keras.layers.Dense(64, activation='relu', input_shape=(X_train_subset.shape[1],)),
+            keras.layers.Dense(1)
+        ])
+        model.compile(optimizer='adam', loss='mse')
+        model.fit(X_train_subset, y_train_subset, epochs=100, verbose=0)
+        y_pred_dnn = model.predict(X_test)
+
+        
+        lr_model = np.linalg.lstsq(X_train_subset, y_train_subset, rcond=None)[0]
+        y_pred_lr = np.dot(X_test, lr_model)
+
+       
+        mae_scores_dnn.append(np.mean(np.abs(y_test - y_pred_dnn)))
+        mse_scores_dnn.append(np.mean(np.square(y_test - y_pred_dnn)))
+        medae_scores_dnn.append(np.median(np.abs(y_test - y_pred_dnn)))
+        mae_scores_lr.append(np.mean(np.abs(y_test - y_pred_lr)))
+        mse_scores_lr.append(np.mean(np.square(y_test - y_pred_lr)))
+        medae_scores_lr.append(np.median(np.abs(y_test - y_pred_lr)))
+
+    return mae_scores_dnn, mse_scores_dnn, medae_scores_dnn, mae_scores_lr, mse_scores_lr, medae_scores_lr
+
+#4
+train_sizes = np.linspace(0.1, 1.0, 10)
+
+
+mae_scores_dnn, mse_scores_dnn, medae_scores_dnn, mae_scores_lr, mse_scores_lr, medae_scores_lr = evaluate_models(train_sizes)
+
+#5
+data = [
+    (mae_scores_dnn, 'DNN MAE'),
+    (mse_scores_dnn, 'DNN MSE'),
+    (medae_scores_dnn, 'DNN MedAE'),
+    (mae_scores_lr, 'LR MAE'),
+    (mse_scores_lr, 'LR MSE'),
+    (medae_scores_lr, 'LR MedAE')
+]
+
+
+for scores, label in data:
+    plt.figure()
+    plt.plot(train_sizes, scores)
+    plt.xlabel('Training Size')
+    plt.ylabel(label)
+    plt.title(f'{label} vs Training Size')
+    plt.show()
+
