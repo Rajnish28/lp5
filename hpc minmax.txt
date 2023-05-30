@@ -1,0 +1,79 @@
+#include <iostream>
+#include <vector> // verctor fr dynamic arrays
+#include <omp.h>  // for Open Mp parallelism
+
+using namespace std;
+
+// Function to find the minimum value
+int findMin(int* data, int size)
+{
+    int minValue = data[0];  // 
+
+    #pragma omp parallel for reduction(min: minValue)
+    
+    // this helps in loop parallelism which iterrates on array elements
+    //  reduction(min: minValue) ensures that whocle at the time of parallel state each thread should have a seperate value
+    // and at the end that would be comparised.
+    for (int i = 1; i < size; ++i)
+    {
+        if (data[i] < minValue)
+            minValue = data[i];
+    }
+
+    return minValue;
+}
+
+// Function to find the maximum value
+int findMax(const int* data, int size)
+{
+    int maxValue = data[0];
+
+    #pragma omp parallel for reduction(max: maxValue)
+    for (int i = 1; i < size; ++i)
+    {
+        if (data[i] > maxValue)
+            maxValue = data[i];
+    }
+
+    return maxValue;
+}
+
+// Function to calculate the sum of values
+int calculateSum(const int* data, int size)
+{
+    int sum = 0;
+
+    #pragma omp parallel for reduction(+: sum) // to parallelize the loop that sumns up array
+    for (int i = 0; i < size; ++i)
+    {
+        sum =sum+ data[i];
+    }
+
+    return sum;
+}
+
+// Function to calculate the average of values
+double calculateAverage(const int* data, int size)
+{
+    int average = calculateSum(data, size);
+    return static_cast<double>(average) / size;
+}
+
+int main()
+{
+    int data[] = {5,6,2,3,9,8,4,1,3};
+   
+    int size = sizeof(data) / sizeof(data[0]);
+
+    int minValue = findMin(data, size);
+    int maxValue = findMax(data, size);
+    int sum = calculateSum(data, size);
+    double average = calculateAverage(data, size);
+
+    cout << "Min Value: " << minValue << endl;
+    cout << "Max Value: " << maxValue << endl;
+    cout << "Sum: " << sum << endl;
+    cout << "Average: " << average << endl;
+
+    return 0;
+}
